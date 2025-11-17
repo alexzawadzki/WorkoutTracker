@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alex and Karolina's Workout Challenge</title>
+
+```
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        color: #333;
+    }
+
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .header {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        text-align: center;
+    }
+
+    .header h1 {
+        color: #667eea;
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+
+    .progress-container {
+        background: #f0f0f0;
+        border-radius: 10px;
+        height: 30px;
+        margin: 15px 0;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        height: 100%;
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .week-selector {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        padding: 5px 0;
+    }
+
+    .week-btn {
+        flex: 1;
+        min-width: 80px;
+        padding: 12px;
+        background: white;
+        border: none;
+        border-radius: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .week-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .workout-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .workout-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .workout-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .workout-date {
+        font-size: 14px;
+        color: #888;
+    }
+
+    .complete-day-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .complete-day-btn.completed {
+        background: #10b981;
+    }
+
+    .exercise-list {
+        list-style: none;
+    }
+
+    .exercise-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .exercise-item:last-child {
+        border-bottom: none;
+    }
+
+    .checkbox {
+        width: 24px;
+        height: 24px;
+        min-width: 24px;
+        border: 2px solid #667eea;
+        border-radius: 6px;
+        margin-right: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .checkbox.checked {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+    }
+
+    .checkbox.checked::after {
+        content: '✓';
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+    }
+
+    .exercise-text {
+        flex: 1;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    .exercise-text.completed {
+        text-decoration: line-through;
+        color: #999;
+    }
+
+    .warmup-cooldown {
+        background: #fff8e1;
+        border-left: 4px solid #ffc107;
+        padding: 12px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .section-title {
+        font-weight: bold;
+        color: #f57c00;
+        margin-bottom: 5px;
+    }
+
+    .rest-day {
+        text-align: center;
+        padding: 30px;
+        color: #10b981;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .reset-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .stat-box {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💪 Alex & Karolina's Workout Challenge</h1>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar">0%</div>
+            </div>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="daysCompleted">0</div>
+                    <div class="stat-label">Days Done</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="totalDays">20</div>
+                    <div class="stat-label">Total Days</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="streak">0</div>
+                    <div class="stat-label">Streak</div>
+                </div>
+            </div>
+            <button class="reset-btn" onclick="resetProgress()">Reset All Progress</button>
+        </div>
+
+```
+    <div class="week-selector">
+        <button class="week-btn active" onclick="selectWeek(1)">Week 1</button>
+        <button class="week-btn" onclick="selectWeek(2)">Week 2</button>
+        <button class="week-btn" onclick="selectWeek(3)">Week 3</button>
+        <button class="week-btn" onclick="selectWeek(4)">Week 4</button>
+    </div>
+
+    <div id="workoutContainer"></div>
+</div>
+
+<script>
+    // Initialize Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyBvnuzyqHTLuDKUIxMaXirISpyd-6XDquE",
+        authDomain: "workout-challenge-3908f.firebaseapp.com",
+        projectId: "workout-challenge-3908f",
+        storageBucket: "workout-challenge-3908f.firebasestorage.app",
+        messagingSenderId: "27695203130",
+        appId: "1:27695203130:web:4024aa5b439325686e4603"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const progressDoc = db.collection('workoutProgress').doc('alexAndKarolina');
+
+    const workouts = {
+        1: [
+            {
+                day: "Monday",
+                date: "Dec 2",
+                title: "Full Body Circuit",
+                exercises: [
+                    "3 rounds, 1 minute rest between rounds",
+                    "15 squats",
+                    "10 push-ups (on knees if needed)",
+                    "20 alternating lunges (10 each leg)",
+                    "30-second plank",
+                    "15 glute bridges",
+                    "20 mountain climbers",
+                    "10 tricep dips (use couch or chair)"
+                ]
+            },
+            {
+                day: "Tuesday",
+                date: "Dec 3",
+                title: "Cardio Mix",
+                exercises: [
+                    "25 minutes total, 30 seconds rest between exercises",
+                    "2 minutes jumping jacks",
+                    "1 minute high knees",
+                    "1 minute butt kicks",
+                    "1 minute mountain climbers",
+                    "2 minutes jogging in place",
+                    "1 minute burpees (modified if needed)",
+                    "Repeat this circuit 3 times"
+                ]
+            },
+            {
+                day: "Wednesday",
+                date: "Dec 4",
+                title: "Core & Flexibility",
+                exercises: [
+                    "30 minutes total",
+                    "1-minute forearm plank",
+                    "20 bicycle crunches",
+                    "30-second side plank (each side)",
+                    "15 leg raises",
+                    "20 Russian twists",
+                    "30-second hollow body hold",
+                    "Repeat 3 times",
+                    "Finish with 10 minutes of yoga stretches"
+                ]
+            },
+            {
+                day: "Thursday",
+                date: "Dec 5",
+                title: "Lower Body Blast",
+                exercises: [
+                    "4 rounds, 45 seconds rest between rounds",
+                    "20 squats",
+                    "15 glute bridges",
+                    "20 alternating reverse lunges",
+                    "20 calf raises",
+                    "15 squat pulses",
+                    "30-second wall sit"
+                ]
+            },
+            {
+                day: "Friday",
+                date: "Dec 6",
+                title: "Partner Workout",
+                exercises: [
+                    "30 minutes, do together or take turns",
+                    "Partner plank high-fives: 10 each",
+                    "Mirror squats: 20",
+                    "Partner sit-up high-fives: 15 each",
+                    "Synchronized jumping jacks: 50",
+                    "Back-to-back wall sit: 45 seconds",
+                    "Partner push-ups with clap: 10",
+                    "Plank hold competition",
+                    "Repeat circuit 2-3 times"
+                ]
+            }
+        ],
+        2: [
+            {
+                day: "Monday",
+                date: "Dec 9",
+                title: "Full Body Circuit (UPGRADED)",
+                exercises: [
+                    "3 rounds, 32 minutes",
+                    "20 squats (+5)",
+                    "12 push-ups (+2)",
+                    "24 alternating lunges (+4)",
+                    "45-second plank (+15 sec)",
+                    "20 glute bridges (+5)",
+                    "25 mountain climbers (+5)",
+                    "15 tricep dips (+5)",
+                    "12 burpees (NEW)"
+                ]
+            },
+            {
+                day: "Tuesday",
+                date: "Dec 10",
+                title: "Cardio Challenge",
+                exercises: [
+                    "30 minutes total",
+                    "60-second sprint in place",
+                    "30 jump squats",
+                    "60-second high knees",
+                    "20 burpees",
+                    "60-second mountain climbers",
+                    "30 jumping lunges (alternating)",
+                    "2-minute active recovery (march in place)",
+                    "Repeat 3 times"
+                ]
+            },
+            {
+                day: "Wednesday",
+                date: "Dec 11",
+                title: "Core Crusher",
+                exercises: [
+                    "35 minutes total",
+                    "75-second forearm plank",
+                    "25 bicycle crunches",
+                    "45-second side plank each side",
+                    "20 leg raises",
+                    "25 Russian twists",
+                    "45-second hollow body hold",
+                    "20 V-ups (NEW)",
+                    "Repeat 3 times",
+                    "10 minutes yoga cool-down"
+                ]
+            },
+            {
+                day: "Thursday",
+                date: "Dec 12",
+                title: "Lower Body Power",
+                exercises: [
+                    "4 rounds, 28 minutes",
+                    "25 squats",
+                    "20 glute bridges",
+                    "24 reverse lunges",
+                    "25 calf raises",
+                    "20 squat pulses",
+                    "45-second wall sit",
+                    "15 single-leg deadlifts each leg (NEW)"
+                ]
+            },
+            {
+                day: "Friday",
+                date: "Dec 13",
+                title: "Partner Challenge Day",
+                exercises: [
+                    "35 minutes total",
+                    "Plank-to-push-up relay: 10 each",
+                    "Synchronized burpees: 15",
+                    "Partner leg throw-downs: 12 each",
+                    "Mirror jump squats: 25",
+                    "Back-to-back squat hold: 60 seconds",
+                    "High-five push-ups: 12",
+                    "Wheelbarrow races: 2x across room",
+                    "Combined plank hold: 90 seconds total",
+                    "Repeat circuit 2 times"
+                ]
+            }
+        ],
+        3: [
+            {
+                day: "Monday",
+                date: "Dec 16",
+                title: "Full Body INTENSE",
+                exercises: [
+                    "4 rounds, 38 minutes",
+                    "25 squats",
+                    "15 push-ups",
+                    "30 alternating lunges",
+                    "60-second plank",
+                    "25 glute bridges",
+                    "30 mountain climbers",
+                    "20 tricep dips",
+                    "15 burpees",
+                    "20 jump squats (NEW)"
+                ]
+            },
+            {
+                day: "Tuesday",
+                date: "Dec 17",
+                title: "Tabata Tuesday",
+                exercises: [
+                    "32 minutes total (20 sec work/10 sec rest, 8 rounds per exercise)",
+                    "Burpees (4 min)",
+                    "High knees (4 min)",
+                    "Jump squats (4 min)",
+                    "Mountain climbers (4 min)",
+                    "Jumping jacks (4 min)",
+                    "Rest 2 min between each exercise set"
+                ]
+            },
+            {
+                day: "Wednesday",
+                date: "Dec 18",
+                title: "Core Demolition",
+                exercises: [
+                    "40 minutes total",
+                    "90-second plank",
+                    "30 bicycle crunches",
+                    "60-second side plank each",
+                    "25 leg raises",
+                    "30 Russian twists",
+                    "60-second hollow body hold",
+                    "25 V-ups",
+                    "20 flutter kicks (NEW)",
+                    "Repeat 4 times",
+                    "8 minutes yoga"
+                ]
+            },
+            {
+                day: "Thursday",
+                date: "Dec 19",
+                title: "Leg Day MAX",
+                exercises: [
+                    "5 rounds, 32 minutes",
+                    "30 squats",
+                    "25 glute bridges",
+                    "30 reverse lunges",
+                    "30 calf raises",
+                    "25 squat pulses",
+                    "60-second wall sit",
+                    "20 single-leg deadlifts each",
+                    "15 jump lunges (NEW)"
+                ]
+            },
+            {
+                day: "Friday",
+                date: "Dec 20",
+                title: "Partner Peak Challenge",
+                exercises: [
+                    "40 minutes total",
+                    "50 synchronized jumping jacks",
+                    "20 partner burpees (clap between)",
+                    "Partner plank shoulder taps: 20 each",
+                    "30 mirror jump squats",
+                    "Partner push-up pyramid: 1-2-3-4-5-4-3-2-1",
+                    "90-second back-to-back wall sit",
+                    "Leg throw-downs: 15 each",
+                    "Combined 2-minute plank hold",
+                    "Repeat circuit 2 times"
+                ]
+            }
+        ],
+        4: [
+            {
+                day: "Monday",
+                date: "Dec 23",
+                title: "12 Days of Fitness",
+                exercises: [
+                    "Do in descending order (35 minutes)",
+                    "12 burpees",
+                    "11 jump squats",
+                    "10 push-ups",
+                    "9 tricep dips",
+                    "8 jumping lunges (each leg)",
+                    "7 mountain climbers (each leg)",
+                    "6 V-ups",
+                    "5 squat pulses",
+                    "4 plank shoulder taps (each side)",
+                    "3 tuck jumps",
+                    "2 minutes high knees",
+                    "1 minute plank hold"
+                ]
+            },
+            {
+                day: "Tuesday",
+                date: "Dec 24",
+                title: "Christmas Eve Cardio Party",
+                exercises: [
+                    "30 minutes (sing Christmas songs!)",
+                    "Burpees (4 min - 20 sec work/10 sec rest)",
+                    "High knees (4 min - 20 sec work/10 sec rest)",
+                    "Jump squats (4 min - 20 sec work/10 sec rest)",
+                    "Mountain climbers (4 min - 20 sec work/10 sec rest)",
+                    "Jumping jacks (4 min - 20 sec work/10 sec rest)",
+                    "Rest 2 min between sets"
+                ]
+            },
+            {
+                day: "Wednesday",
+                date: "Dec 25",
+                title: "Christmas Day Partner Fun",
+                exercises: [
+                    "25 minutes (light and fun)",
+                    "25 synchronized jumping jacks",
+                    "25 mirror squats",
+                    "25 partner high-five sit-ups",
+                    "25 mountain climbers each",
+                    "25 glute bridges",
+                    "2-minute plank hold together",
+                    "Lots of stretching and celebrating!"
+                ]
+            },
+            {
+                day: "Thursday",
+                date: "Dec 26",
+                title: "Post-Holiday Blast",
+                exercises: [
+                    "5 rounds, 32 minutes",
+                    "30 squats",
+                    "25 glute bridges",
+                    "30 reverse lunges",
+                    "30 calf raises",
+                    "25 squat pulses",
+                    "60-second wall sit",
+                    "20 single-leg deadlifts each",
+                    "15 jump lunges"
+                ]
+            },
+            {
+                day: "Friday",
+                date: "Dec 27",
+                title: "Final Challenge - YOUR BEST!",
+                exercises: [
+                    "45 minutes - GIVE IT YOUR ALL!",
+                    "50 synchronized jumping jacks",
+                    "20 partner burpees (clap between)",
+                    "Partner plank shoulder taps: 20 each",
+                    "30 mirror jump squats",
+                    "Partner push-up pyramid: 1-2-3-4-5-4-3-2-1",
+                    "90-second back-to-back wall sit",
+                    "Leg throw-downs: 15 each",
+                    "Combined 2-minute plank hold",
+                    "Repeat circuit 2 times",
+                    "Take final progress photos! 📸",
+                    "CELEBRATE! 🎉"
+                ]
+            }
+        ]
+    };
+
+    let currentWeek = 1;
+    let progress = {};
+
+    // Load progress from Firebase and listen for real-time updates
+    progressDoc.onSnapshot((doc) => {
+        if (doc.exists) {
+            progress = doc.data();
+        } else {
+            progress = {};
+        }
+        renderWorkouts();
+    }, (error) => {
+        console.error("Error loading progress:", error);
+        // Fallback to localStorage if Firebase fails
+        progress = JSON.parse(localStorage.getItem('workoutProgress')) || {};
+        renderWorkouts();
+    });
+
+    // Save progress to Firebase
+    function saveProgress() {
+        progressDoc.set(progress).catch((error) => {
+            console.error("Error saving progress:", error);
+            // Fallback to localStorage if Firebase fails
+            localStorage.setItem('workoutProgress', JSON.stringify(progress));
+        });
+    }
+
+    function selectWeek(week) {
+        currentWeek = week;
+        document.querySelectorAll('.week-btn').forEach((btn, index) => {
+            btn.classList.toggle('active', index + 1 === week);
+        });
+        renderWorkouts();
+    }
+
+    function renderWorkouts() {
+        const container = document.getElementById('workoutContainer');
+        container.innerHTML = '';
+
+        workouts[currentWeek].forEach((workout, dayIndex) => {
+            const workoutKey = `w${currentWeek}d${dayIndex}`;
+            const dayProgress = progress[workoutKey] || { exercises: [], completed: false };
+
+            const card = document.createElement('div');
+            card.className = 'workout-card';
+
+            const warmupCooldown = `
+                <div class="warmup-cooldown">
+                    <div class="section-title">🔥 Warm-up (5 min):</div>
+                    Arm circles, leg swings, jumping jacks, bodyweight squats
+                </div>
+                <div class="warmup-cooldown">
+                    <div class="section-title">❄️ Cool-down (5 min):</div>
+                    Light stretching, walking in place
+                </div>
+            `;
+
+            const exercisesList = workout.exercises.map((exercise, exIndex) => {
+                const isChecked = dayProgress.exercises.includes(exIndex);
+                return `
+                    <li class="exercise-item">
+                        <div class="checkbox ${isChecked ? 'checked' : ''}" 
+                             onclick="toggleExercise(${currentWeek}, ${dayIndex}, ${exIndex})">
+                        </div>
+                        <div class="exercise-text ${isChecked ? 'completed' : ''}">${exercise}</div>
+                    </li>
+                `;
+            }).join('');
+
+            card.innerHTML = `
+                <div class="workout-header">
+                    <div>
+                        <div class="workout-title">${workout.day} - ${workout.title}</div>
+                        <div class="workout-date">${workout.date}</div>
+                    </div>
+                    <button class="complete-day-btn ${dayProgress.completed ? 'completed' : ''}" 
+                            onclick="toggleDayComplete(${currentWeek}, ${dayIndex})">
+                        ${dayProgress.completed ? '✓ Done!' : 'Complete'}
+                    </button>
+                </div>
+                ${warmupCooldown}
+                <ul class="exercise-list">
+                    ${exercisesList}
+                </ul>
+            `;
+
+            container.appendChild(card);
+        });
+
+        updateStats();
+    }
+
+    function toggleExercise(week, day, exercise) {
+        const workoutKey = `w${week}d${day}`;
+        if (!progress[workoutKey]) {
+            progress[workoutKey] = { exercises: [], completed: false };
+        }
+
+        const exerciseIndex = progress[workoutKey].exercises.indexOf(exercise);
+        if (exerciseIndex > -1) {
+            progress[workoutKey].exercises.splice(exerciseIndex, 1);
+        } else {
+            progress[workoutKey].exercises.push(exercise);
+        }
+
+        saveProgress();
+    }
+
+    function toggleDayComplete(week, day) {
+        const workoutKey = `w${week}d${day}`;
+        if (!progress[workoutKey]) {
+            progress[workoutKey] = { exercises: [], completed: false };
+        }
+
+        progress[workoutKey].completed = !progress[workoutKey].completed;
+        
+        if (progress[workoutKey].completed) {
+            const totalExercises = workouts[week][day].exercises.length;
+            progress[workoutKey].exercises = Array.from({length: totalExercises}, (_, i) => i);
+        } else {
+            progress[workoutKey].exercises = [];
+        }
+
+        saveProgress();
+    }
+
+    function updateStats() {
+        let completedDays = 0;
+        let totalDays = 0;
+        
+        for (let week = 1; week <= 4; week++) {
+            totalDays += workouts[week].length;
+            workouts[week].forEach((_, dayIndex) => {
+                const workoutKey = `w${week}d${dayIndex}`;
+                if (progress[workoutKey] && progress[workoutKey].completed) {
+                    completedDays++;
+                }
+            });
+        }
+
+        const percentage = Math.round((completedDays / totalDays) * 100);
+        
+        document.getElementById('daysCompleted').textContent = completedDays;
+        document.getElementById('totalDays').textContent = totalDays;
+        document.getElementById('progressBar').style.width = percentage + '%';
+        document.getElementById('progressBar').textContent = percentage + '%';
+        
+        // Calculate streak
+        let streak = 0;
+        let currentStreak = 0;
+        for (let week = 1; week <= 4; week++) {
+            for (let day = 0; day < workouts[week].length; day++) {
+                const workoutKey = `w${week}d${day}`;
+                if (progress[workoutKey] && progress[workoutKey].completed) {
+                    currentStreak++;
+                    streak = Math.max(streak, currentStreak);
+                } else {
+                    currentStreak = 0;
+                }
+            }
+        }
+        document.getElementById('streak').textContent = streak;
+    }
+
+    function resetProgress() {
+        if (confirm('Are you sure you want to reset all progress? This cannot be undone!')) {
+            progress = {};
+            saveProgress();
+            localStorage.removeItem('workoutProgress');
+        }
+    }
+
+    // Initialize - don't call renderWorkouts here since Firebase onSnapshot will handle it
+</script>
+```
+
+</body>
+</html>
